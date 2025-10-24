@@ -1,11 +1,7 @@
 // src/parser.js
-// Recursive-descent parser. Converts FUNC (sqrtN) into a BinaryOp '^' with right = Number("1/N").
-// AST nodes:
-// - Assignment { type: 'Assignment', name, id, value }
-// - BinaryOp { type: 'BinaryOp', op, left, right }
-// - UnaryOp { type: 'UnaryOp', op, expr }
-// - Identifier { type: 'Identifier', name, id }
-// - Number { type: 'Number', value }
+// Exports:
+// - parseTokens(tokens): returns internal AST (Assignment, BinaryOp, UnaryOp, Identifier, Number)
+// - astToVizFormat(ast): converts AST -> tree format for react-d3-tree
 
 const TOKEN_TYPES_LOCAL = {
   IDENT: "IDENT",
@@ -17,7 +13,8 @@ const TOKEN_TYPES_LOCAL = {
   FUNC: "FUNC",
 };
 
-export function parseToAst(tokens) {
+export function parseTokens(tokens) {
+  // tokens: array of token objects produced by lexer (with .type, .value, and for IDENT .id)
   let i = 0;
   function peek() {
     return tokens[i] || null;
@@ -26,11 +23,9 @@ export function parseToAst(tokens) {
     return tokens[i++] || null;
   }
 
-  // parse entry
   function parseProgram() {
     const first = peek();
     if (first && first.type === TOKEN_TYPES_LOCAL.IDENT) {
-      // tentative assignment
       const idTok = next();
       const after = peek();
       if (after && after.type === TOKEN_TYPES_LOCAL.ASSIGN) {
@@ -43,7 +38,7 @@ export function parseToAst(tokens) {
           value: expr,
         };
       } else {
-        // not an assignment, rewind and parse full expression
+        // not assignment, rewind
         i = 0;
       }
     }
@@ -89,7 +84,7 @@ export function parseToAst(tokens) {
   }
 
   function parsePower() {
-    // right-associative: a ^ b ^ c => a ^ (b ^ c)
+    // right-associative
     let node = parseUnary();
     const t = peek();
     if (t && t.type === TOKEN_TYPES_LOCAL.OP && t.value === "^") {
@@ -129,7 +124,7 @@ export function parseToAst(tokens) {
     }
 
     if (t.type === TOKEN_TYPES_LOCAL.FUNC) {
-      // FUNC LPAREN expr RPAREN -> convert to BinaryOp '^' with right Number("1/base")
+      // convert FUNC LPAREN expr RPAREN -> BinaryOp '^' with right Number("1/base")
       const fn = next();
       const l = peek();
       if (!l || l.type !== TOKEN_TYPES_LOCAL.LPAREN)
@@ -140,8 +135,8 @@ export function parseToAst(tokens) {
       if (!r || r.type !== TOKEN_TYPES_LOCAL.RPAREN)
         throw new Error("Expected ) after function argument");
       next(); // consume ')'
-      // create binary power node: expr ^ (1/base)
       const base = fn.base || 2;
+      // Represent exponent as fraction string '1/N' (codegen will convert to float)
       return {
         type: "BinaryOp",
         op: "^",
@@ -164,16 +159,11 @@ export function parseToAst(tokens) {
   }
 
   const ast = parseProgram();
-  return astToVizFormat(ast);
+  return ast;
 }
 
-/* Convert AST to visualization tree nodes for react-d3-tree.
-   Requirements:
-   - Identifier nodes show "name (idN)"
-   - Numbers are shown as a 'Real' node with a single child that is the literal
-   - BinaryOp shows op as node name with two children
-*/
-function astToVizFormat(ast) {
+// Convert AST to react-d3-tree format
+export function astToVizFormat(ast) {
   if (!ast) return null;
 
   function nodeFor(n) {
@@ -184,20 +174,14 @@ function astToVizFormat(ast) {
           name: "=",
           children: [{ name: `${n.name} (${n.id || ""})` }, nodeFor(n.value)],
         };
-
       case "BinaryOp":
         return { name: n.op, children: [nodeFor(n.left), nodeFor(n.right)] };
-
       case "UnaryOp":
         return { name: n.op, children: [nodeFor(n.expr)] };
-
       case "Number":
-        // Real node with one child for the numeric literal (keeps tree shape consistent)
         return { name: "Real", children: [{ name: `${n.value}` }] };
-
       case "Identifier":
         return { name: `${n.name} (${n.id || ""})` };
-
       default:
         return { name: JSON.stringify(n) };
     }
