@@ -3,6 +3,9 @@
 // - parseTokens(tokens): returns internal AST (Assignment, BinaryOp, UnaryOp, Identifier, Number)
 // - astToVizFormat(ast): converts AST -> tree format for react-d3-tree
 
+// TypeScript types for tokens and AST nodes
+import type { Token } from "./lexer";
+
 const TOKEN_TYPES_LOCAL = {
   IDENT: "IDENT",
   NUMBER: "NUMBER",
@@ -11,45 +14,79 @@ const TOKEN_TYPES_LOCAL = {
   RPAREN: "RPAREN",
   ASSIGN: "ASSIGN",
   FUNC: "FUNC",
-};
+} as const;
 
-export function parseTokens(tokens) {
-  // tokens: array of token objects produced by lexer (with .type, .value, and for IDENT .id)
+// AST node types
+export type ASTNode =
+  | AssignmentNode
+  | BinaryOpNode
+  | UnaryOpNode
+  | IdentifierNode
+  | NumberNode;
+
+export interface AssignmentNode {
+  type: "Assignment";
+  name: string;
+  id?: string;
+  value: ASTNode;
+}
+export interface BinaryOpNode {
+  type: "BinaryOp";
+  op: string;
+  left: ASTNode;
+  right: ASTNode;
+}
+export interface UnaryOpNode {
+  type: "UnaryOp";
+  op: string;
+  expr: ASTNode;
+}
+export interface IdentifierNode {
+  type: "Identifier";
+  name: string;
+  id?: string;
+}
+export interface NumberNode {
+  type: "Number";
+  value: string;
+}
+
+// Parse tokens into AST
+export function parseTokens(tokens: Token[]): ASTNode {
   let i = 0;
-  function peek() {
+  function peek(): Token | null {
     return tokens[i] || null;
   }
-  function next() {
+  function next(): Token | null {
     return tokens[i++] || null;
   }
 
-  function parseProgram() {
+  function parseProgram(): ASTNode {
     const first = peek();
     if (first && first.type === TOKEN_TYPES_LOCAL.IDENT) {
-      const idTok = next();
+      const idTok = next()!;
       const after = peek();
       if (after && after.type === TOKEN_TYPES_LOCAL.ASSIGN) {
         next(); // consume '='
         const expr = parseExpression();
         return {
           type: "Assignment",
-          name: idTok.value,
-          id: idTok.id,
+          name: idTok.value!,
+          id: (idTok as any).id,
           value: expr,
         };
       } else {
-        // not assignment, rewind
         i = 0;
       }
     }
     return parseExpression();
   }
 
-  function parseExpression() {
+  function parseExpression(): ASTNode {
     return parseAdditive();
   }
 
-  function parseAdditive() {
+  function parseAdditive(): ASTNode {
     let node = parseMultiplicative();
     while (true) {
       const t = peek();
@@ -60,13 +97,13 @@ export function parseTokens(tokens) {
       ) {
         next();
         const right = parseMultiplicative();
-        node = { type: "BinaryOp", op: t.value, left: node, right };
+        node = { type: "BinaryOp", op: t.value!, left: node, right };
       } else break;
     }
     return node;
   }
 
-  function parseMultiplicative() {
+  function parseMultiplicative(): ASTNode {
     let node = parsePower();
     while (true) {
       const t = peek();
@@ -77,14 +114,13 @@ export function parseTokens(tokens) {
       ) {
         next();
         const right = parsePower();
-        node = { type: "BinaryOp", op: t.value, left: node, right };
+        node = { type: "BinaryOp", op: t.value!, left: node, right };
       } else break;
     }
     return node;
   }
 
-  function parsePower() {
-    // right-associative
+  function parsePower(): ASTNode {
     let node = parseUnary();
     const t = peek();
     if (t && t.type === TOKEN_TYPES_LOCAL.OP && t.value === "^") {
@@ -95,7 +131,7 @@ export function parseTokens(tokens) {
     return node;
   }
 
-  function parseUnary() {
+  function parseUnary(): ASTNode {
     const t = peek();
     if (
       t &&
@@ -104,39 +140,37 @@ export function parseTokens(tokens) {
     ) {
       next();
       const expr = parseUnary();
-      return { type: "UnaryOp", op: t.value, expr };
+      return { type: "UnaryOp", op: t.value!, expr };
     }
     return parsePrimary();
   }
 
-  function parsePrimary() {
+  function parsePrimary(): ASTNode {
     const t = peek();
     if (!t) throw new Error("Unexpected end of input while parsing primary.");
 
     if (t.type === TOKEN_TYPES_LOCAL.NUMBER) {
       next();
-      return { type: "Number", value: t.value };
+      return { type: "Number", value: t.value! };
     }
 
     if (t.type === TOKEN_TYPES_LOCAL.IDENT) {
       next();
-      return { type: "Identifier", name: t.value, id: t.id };
+      return { type: "Identifier", name: t.value!, id: (t as any).id };
     }
 
     if (t.type === TOKEN_TYPES_LOCAL.FUNC) {
-      // convert FUNC LPAREN expr RPAREN -> BinaryOp '^' with right Number("1/base")
-      const fn = next();
+      const fn = next()!;
       const l = peek();
       if (!l || l.type !== TOKEN_TYPES_LOCAL.LPAREN)
         throw new Error("Expected ( after function name");
-      next(); // consume '('
+      next();
       const expr = parseExpression();
       const r = peek();
       if (!r || r.type !== TOKEN_TYPES_LOCAL.RPAREN)
         throw new Error("Expected ) after function argument");
-      next(); // consume ')'
-      const base = fn.base || 2;
-      // Represent exponent as fraction string '1/N' (codegen will convert to float)
+      next();
+      const base = (fn as any).base || 2;
       return {
         type: "BinaryOp",
         op: "^",
@@ -163,10 +197,10 @@ export function parseTokens(tokens) {
 }
 
 // Convert AST to react-d3-tree format
-export function astToVizFormat(ast) {
+export function astToVizFormat(ast: ASTNode | null): any {
   if (!ast) return null;
 
-  function nodeFor(n) {
+  function nodeFor(n: ASTNode | null): any {
     if (!n) return { name: "null" };
     switch (n.type) {
       case "Assignment":

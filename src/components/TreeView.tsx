@@ -1,4 +1,3 @@
-import React from "react";
 // We'll use react-d3-tree for convenience. The consumer should install it: `npm install react-d3-tree`
 import Tree from "react-d3-tree";
 
@@ -10,7 +9,7 @@ interface TreeViewProps {
 export default function TreeView({ treeData }: TreeViewProps) {
   if (!treeData) {
     return (
-      <div style={{ padding: 12, color: "#666" }}>
+      <div className="p-3 text-gray-500">
         Parse tree will appear here after analysis.
       </div>
     );
@@ -19,11 +18,8 @@ export default function TreeView({ treeData }: TreeViewProps) {
   // react-d3-tree expects an array of root nodes
   const data = [treeData];
 
-  // center the root by transform in a responsive way
-  const containerStyles = { width: "100%", height: "100%" };
-
   return (
-    <div style={containerStyles}>
+    <div className="h-full w-full">
       <Tree
         data={data}
         orientation="vertical"

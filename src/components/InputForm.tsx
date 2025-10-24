@@ -1,14 +1,27 @@
 // src/components/InputForm.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { lexAndTransform } from "@/utils/lexer";
 import { parseTokens, astToVizFormat } from "@/utils/parser";
 import { generateThreeAddress } from "@/utils/codegen";
 
 // InputForm: validates input, runs lexer and parser, returns results to parent
-export default function InputForm({ onResult, onError }) {
-  const [input, setInput] = useState("A = sqrt(B - ( C - D ) ^ E ) - 10");
+interface InputFormProps {
+  onResult: (result: {
+    tokens: any[];
+    transformed: string;
+    ast: any;
+    tac: string[];
+    idMap: Record<string, string>;
+  }) => void;
+  onError: (msg: string) => void;
+}
 
-  function handleAnalyze() {
+export default function InputForm({ onResult, onError }: InputFormProps) {
+  const [input, setInput] = useState<string>(
+    "A = sqrt(B - ( C - D ) ^ E ) - 10"
+  );
+
+  function handleAnalyze(): void {
     try {
       // Validation phase (basic checks)
       const validationError = validateInput(input);
@@ -40,31 +53,36 @@ export default function InputForm({ onResult, onError }) {
 
   return (
     <div>
-      <label>
+      <label className="mb-1 block font-medium">
         Enter expression:
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           rows={4}
-          style={{ width: "100%", marginTop: 6 }}
+          className="mt-1 w-full rounded border border-gray-300 p-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
         />
       </label>
 
-      <div style={{ marginTop: 10 }}>
-        <button onClick={handleAnalyze}>Analyze</button>
+      <div className="mt-3">
+        <button
+          onClick={handleAnalyze}
+          className="rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+        >
+          Analyze
+        </button>
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 12, color: "#555" }}>
-        Allowed: + - * / ^ parentheses `sqrt` numbers and English identifiers
-        (letters then digits). Example:
-        <code> A = sqrt(B - (C - D) ^ E) - 10 </code>
+      <div className="mt-3 text-xs text-gray-600">
+        Allowed: + - * / ^ parentheses <code>sqrt</code> numbers and English
+        identifiers (letters then digits). Example:
+        <code className="ml-1">A = sqrt(B - (C - D) ^ E) - 10</code>
       </div>
     </div>
   );
 }
 
 // Basic input validation (same as before)
-function validateInput(text) {
+function validateInput(text: string): string | null {
   if (!text || !text.trim()) return "Input is empty.";
 
   // parentheses balanced

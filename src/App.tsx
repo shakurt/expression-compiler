@@ -1,35 +1,31 @@
-// src/App.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import InputForm from "./components/InputForm";
 import TreeView from "./components/TreeView";
 
-export default function App() {
-  const [tokensOutput, setTokensOutput] = useState(null);
-  const [transformedExpr, setTransformedExpr] = useState("");
-  const [astTree, setAstTree] = useState(null);
-  const [tac, setTac] = useState(null);
-  const [error, setError] = useState(null);
+const App = () => {
+  // src/App.jsx
+
+  const [tokensOutput, setTokensOutput] = useState<any[] | null>(null);
+  const [transformedExpr, setTransformedExpr] = useState<string>("");
+  const [astTree, setAstTree] = useState<any | null>(null);
+  const [tac, setTac] = useState<string[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 20,
-        padding: 20,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 320 }}>
-        <h2>Mini Compiler — Stages 1 → 3 (Lex, Parse, Codegen)</h2>
+    <div className="flex gap-5 p-5 font-sans">
+      <div className="min-w-[320px] flex-1">
+        <h2 className="mb-4 text-xl font-bold">
+          Mini Compiler — Stages 1 → 3 (Lex, Parse, Codegen)
+        </h2>
         <InputForm
-          onResult={({ tokens, transformed, ast, tac: tacOut, idMap }) => {
+          onResult={({ tokens, transformed, ast, tac: tacOut }) => {
             setTokensOutput(tokens);
             setTransformedExpr(transformed);
             setAstTree(ast);
             setTac(tacOut);
             setError(null);
           }}
-          onError={(errMsg) => {
+          onError={(errMsg: string) => {
             setError(errMsg);
             setTokensOutput(null);
             setTransformedExpr("");
@@ -39,38 +35,44 @@ export default function App() {
         />
 
         {error && (
-          <div style={{ marginTop: 12, color: "darkred" }}>
+          <div className="mt-3 text-red-700">
             <strong>Validation / Error:</strong>
             <div>{error}</div>
           </div>
         )}
 
         {tokensOutput && (
-          <div style={{ marginTop: 12 }}>
-            <h3>Stage 1 — Lexical Analysis (tokens)</h3>
-            <pre style={{ background: "#f5f5f5", padding: 12 }}>
+          <div className="mt-3">
+            <h3 className="font-semibold">
+              Stage 1 — Lexical Analysis (tokens)
+            </h3>
+            <pre className="rounded bg-gray-100 p-3">
               {JSON.stringify(tokensOutput, null, 2)}
             </pre>
 
-            <h3>Transformed expression (identifier ids)</h3>
-            <pre style={{ background: "#f5f5f5", padding: 12 }}>
-              {transformedExpr}
-            </pre>
+            <h3 className="mt-3 font-semibold">
+              Transformed expression (identifier ids)
+            </h3>
+            <pre className="rounded bg-gray-100 p-3">{transformedExpr}</pre>
 
-            <h3>Stage 3 — Three-address code (intermediate code)</h3>
-            <pre style={{ background: "#f5f5f5", padding: 12 }}>
-              {tac ? tac.join("\n") : "No TAC"}
+            <h3 className="mt-3 font-semibold">
+              Stage 3 — Three-address code (intermediate code)
+            </h3>
+            <pre className="rounded bg-gray-100 p-3">
+              {tac && tac.length > 0 ? tac.join("\n") : "No TAC"}
             </pre>
           </div>
         )}
       </div>
 
-      <div style={{ flex: 1, minWidth: 320 }}>
-        <h3>Stage 2 — Parse Tree</h3>
-        <div style={{ height: "70vh", border: "1px solid #ddd" }}>
+      <div className="min-w-[320px] flex-1">
+        <h3 className="mb-2 font-semibold">Stage 2 — Parse Tree</h3>
+        <div className="h-[70vh] rounded border border-gray-300 bg-white">
           <TreeView treeData={astTree} />
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default App;
