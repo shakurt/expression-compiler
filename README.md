@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Expression Compiler (React + TypeScript)
 
-Currently, two official plugins are available:
+This project is a simple expression compiler built for a university compiler course. It demonstrates the main stages of compilation for mathematical expressions:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Lexical Analysis**: Tokenizes the input string (identifiers, numbers, operators, parentheses, functions).
+- **Parsing**: Builds an Abstract Syntax Tree (AST) from the token stream.
+- **AST Visualization**: Shows the parse tree using a graphical tree view.
+- **Code Generation**: Produces three-address code (TAC) from the AST.
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Input and validate math expressions (supports variables, numbers, +, -, *, /, ^, parentheses, and `sqrt` function).
+- See the token list, transformed expression, parse tree, and generated TAC.
+- All logic is implemented in TypeScript and React.
+- Visualizes the parse tree using `react-d3-tree`.
+- Styled with Tailwind CSS.
 
-## Expanding the ESLint configuration
+## Main Packages Used
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- [React](https://react.dev/) — UI framework
+- [Vite](https://vitejs.dev/) — build tool and dev server
+- [Tailwind CSS](https://tailwindcss.com/) — utility-first CSS framework
+- [react-d3-tree](https://github.com/bkrem/react-d3-tree) — parse tree visualization
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+3. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Project Structure
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- `src/utils/lexer.ts` — Lexer (tokenizer)
+- `src/utils/parser.ts` — Parser and AST builder
+- `src/utils/codegen.ts` — Three-address code generator
+- `src/components/InputForm.tsx` — Main input and analysis UI
+- `src/components/TreeView.tsx` — Parse tree visualization
+- `src/App.tsx` — App layout and stage display
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+This project is for educational purposes and demonstrates the basic steps of compiling and visualizing simple math expressions in a web app.
