@@ -2,7 +2,7 @@ import { useState } from "react";
 import type React from "react";
 import { lexAndTransform } from "@/utils/lexer";
 import { parseTokens, astToVizFormat } from "@/utils/parser";
-import { generateThreeAddress } from "@/utils/codegen";
+import { generateThreeAddress } from "@/utils/code-generator";
 
 interface InputFormProps {
   onResult: (result: {
@@ -34,17 +34,16 @@ const InputForm: React.FC<InputFormProps> = ({ onResult, onError }) => {
       const { tokens, transformed } = lexAndTransform(input);
 
       // Stage 2: Parse — create internal AST from token stream
-      // parseTokens returns the internal AST
       const ast = parseTokens(tokens);
 
       // build viz tree for display
-      const viz = astToVizFormat(ast);
+      const tree = astToVizFormat(ast);
 
       // Stage 3: Code generation (three-address code) from the AST
       const tac = generateThreeAddress(ast); // returns array of strings
 
       // send back results
-      onResult({ tokens, transformed, ast: viz, tac });
+      onResult({ tokens, transformed, ast: tree, tac });
     } catch (e) {
       if (e instanceof Error) onError(e.message);
       else onError(String(e));

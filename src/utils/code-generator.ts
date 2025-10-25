@@ -9,7 +9,7 @@ let tempCounter = 1;
 const newTemp = (): string => `t${tempCounter++}`;
 
 // Convert a number to float literal format (e.g., "10" -> "10.0", "1/2" -> "0.5")
-function toFloatLiteral(value: number | string): string {
+const toFloatLiteral = (value: number | string): string => {
   // Already a number
   if (typeof value === "number") {
     return Number.isInteger(value) ? `${value}.0` : String(value);
@@ -17,29 +17,31 @@ function toFloatLiteral(value: number | string): string {
 
   const str = String(value);
 
-  // Handle fractions like "1/2"
+  // Handle string fractions
   if (str.includes("/")) {
     const [numerator, denominator] = str.split("/").map(Number);
     const result = numerator / denominator;
     return Number.isInteger(result) ? `${result}.0` : String(result);
   }
 
-  // Handle integer strings like "10"
+  // Handle integer strings
   if (/^-?\d+$/.test(str)) {
     return `${str}.0`;
   }
 
   // Already a decimal like "10.5"
   return str;
-}
+};
 
 // Generate three-address code from AST
 export function generateThreeAddress(ast: ASTNode): string[] {
+  console.log(ast);
+
   tempCounter = 1; // Reset temp counter
   const instructions: string[] = [];
 
   // Generate code for a node and return the operand (variable or literal)
-  function generate(node: ASTNode): string {
+  const generate = (node: ASTNode): string => {
     if (!node) throw new Error("Cannot generate code for null node");
 
     switch (node.type) {
@@ -81,7 +83,7 @@ export function generateThreeAddress(ast: ASTNode): string[] {
       default:
         throw new Error(`Unknown node type: ${node.type}`);
     }
-  }
+  };
 
   // Handle top-level node
   if (ast.type === "Assignment") {
