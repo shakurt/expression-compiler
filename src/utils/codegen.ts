@@ -1,98 +1,99 @@
-// src/codegen.js
-// Generate simple three-address code (TAC) from an AST.
-// Comments in English (as requested).
-//
-// AST node shapes supported:
-// - { type: 'Assignment', name, id?, value }
-// - { type: 'BinaryOp', op, left, right }
-// - { type: 'UnaryOp', op, expr }
-// - { type: 'Identifier', name, id? }
-// - { type: 'Number', value }   // value can be '10' or '1/2' or '0.5' etc.
-//
-// Output: array of instruction strings (in order).
-//
+// Code Generator: converts AST into three-address code (TAC)
+// TAC is a simple intermediate representation where each instruction has at most one operator
 
-import type {
-  ASTNode,
-  AssignmentNode,
-  BinaryOpNode,
-  UnaryOpNode,
-  IdentifierNode,
-  NumberNode,
-} from "./parser";
+import type { ASTNode } from "@/types";
 
 let tempCounter = 1;
 
-function newTemp(): string {
-  return `t${tempCounter++}`;
+// Generate a new temporary variable name (t1, t2, t3, ...)
+const newTemp = (): string => `t${tempCounter++}`;
+
+// Convert a number to float literal format (e.g., "10" -> "10.0", "1/2" -> "0.5")
+function toFloatLiteral(value: number | string): string {
+  // Already a number
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? `${value}.0` : String(value);
+  }
+
+  const str = String(value);
+
+  // Handle fractions like "1/2"
+  if (str.includes("/")) {
+    const [numerator, denominator] = str.split("/").map(Number);
+    const result = numerator / denominator;
+    return Number.isInteger(result) ? `${result}.0` : String(result);
+  }
+
+  // Handle integer strings like "10"
+  if (/^-?\d+$/.test(str)) {
+    return `${str}.0`;
+  }
+
+  // Already a decimal like "10.5"
+  return str;
 }
 
-function toFloatLiteral(numVal: number | string): string {
-  if (typeof numVal === "number") {
-    return Number.isInteger(numVal) ? `${numVal}.0` : String(numVal);
-  }
-  const s = String(numVal);
-  if (s.includes("/")) {
-    const [a, b] = s.split("/").map(Number);
-    const v = a / b;
-    return Number.isInteger(v) ? `${v}.0` : String(v);
-  }
-  if (/^-?\d+$/.test(s)) return `${s}.0`;
-  return s;
-}
-
+// Generate three-address code from AST
 export function generateThreeAddress(ast: ASTNode): string[] {
-  tempCounter = 1;
-  const instr: string[] = [];
+  tempCounter = 1; // Reset temp counter
+  const instructions: string[] = [];
 
-  function gen(node: ASTNode): string {
-    if (!node) throw new Error("gen: null node");
+  // Generate code for a node and return the operand (variable or literal)
+  function generate(node: ASTNode): string {
+    if (!node) throw new Error("Cannot generate code for null node");
+
     switch (node.type) {
+      // Number: convert to float literal
       case "Number": {
-        return toFloatLiteral((node as NumberNode).value);
+        return toFloatLiteral(node.value as string);
       }
+
+      // Identifier: use id if available, otherwise use name
       case "Identifier": {
-        const n = node as IdentifierNode;
-        return n.id || n.name;
+        return node.id || node.name || "";
       }
+
+      // Unary operation: +x or -x
       case "UnaryOp": {
-        const n = node as UnaryOpNode;
-        const operand = gen(n.expr);
-        const t = newTemp();
-        instr.push(`${t} = ${n.op}${operand}`);
-        return t;
+        const operand = generate(node.expr!);
+        const temp = newTemp();
+        instructions.push(`${temp} = ${node.op}${operand}`);
+        return temp;
       }
+
+      // Binary operation: x + y, x * y, etc.
       case "BinaryOp": {
-        const n = node as BinaryOpNode;
-        const leftOp = gen(n.left);
-        const rightOp = gen(n.right);
-        const t = newTemp();
-        instr.push(`${t} = ${leftOp} ${n.op} ${rightOp}`);
-        return t;
+        const left = generate(node.left!);
+        const right = generate(node.right!);
+        const temp = newTemp();
+        instructions.push(`${temp} = ${left} ${node.op} ${right}`);
+        return temp;
       }
+
+      // Assignment: x = expr
       case "Assignment": {
-        const n = node as AssignmentNode;
-        const r = gen(n.value);
-        const target = n.id || n.name;
-        instr.push(`${target} = ${r}`);
+        const result = generate(node.value as ASTNode);
+        const target = node.id || node.name || "";
+        instructions.push(`${target} = ${result}`);
         return target;
       }
+
       default:
-        throw new Error(
-          "Unhandled node type in codegen: " + (node as any).type
-        );
+        throw new Error(`Unknown node type: ${node.type}`);
     }
   }
 
+  // Handle top-level node
   if (ast.type === "Assignment") {
-    const rhs = (ast as AssignmentNode).value;
-    const result = gen(rhs);
-    const target = (ast as AssignmentNode).id || (ast as AssignmentNode).name;
-    instr.push(`${target} = ${result}`);
+    // For assignments, generate the right side and assign to variable
+    const rightSide = generate(ast.value as ASTNode);
+    const variable = ast.id || ast.name || "";
+    instructions.push(`${variable} = ${rightSide}`);
   } else {
-    const res = gen(ast);
-    instr.push(`_result = ${res}`);
+    // For expressions, store result in _result
+    const result = generate(ast);
+    instructions.push(`_result = ${result}`);
   }
 
-  return instr;
+  return instructions;
 }

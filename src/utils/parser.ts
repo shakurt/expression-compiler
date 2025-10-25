@@ -1,225 +1,210 @@
-// src/parser.js
-// Exports:
-// - parseTokens(tokens): returns internal AST (Assignment, BinaryOp, UnaryOp, Identifier, Number)
-// - astToVizFormat(ast): converts AST -> tree format for react-d3-tree
-
-// TypeScript types for tokens and AST nodes
-import type { Token } from "./lexer";
-
-const TOKEN_TYPES_LOCAL = {
-  IDENT: "IDENT",
-  NUMBER: "NUMBER",
-  OP: "OP",
-  LPAREN: "LPAREN",
-  RPAREN: "RPAREN",
-  ASSIGN: "ASSIGN",
-  FUNC: "FUNC",
-} as const;
-
-// AST node types
-export type ASTNode =
-  | AssignmentNode
-  | BinaryOpNode
-  | UnaryOpNode
-  | IdentifierNode
-  | NumberNode;
-
-export interface AssignmentNode {
-  type: "Assignment";
-  name: string;
-  id?: string;
-  value: ASTNode;
-}
-export interface BinaryOpNode {
-  type: "BinaryOp";
-  op: string;
-  left: ASTNode;
-  right: ASTNode;
-}
-export interface UnaryOpNode {
-  type: "UnaryOp";
-  op: string;
-  expr: ASTNode;
-}
-export interface IdentifierNode {
-  type: "Identifier";
-  name: string;
-  id?: string;
-}
-export interface NumberNode {
-  type: "Number";
-  value: string;
-}
+import type { Token, ASTNode } from "@/types";
+import { TOKEN_TYPES } from "@/types";
 
 // Parse tokens into AST
-export function parseTokens(tokens: Token[]): ASTNode {
-  let i = 0;
-  function peek(): Token | null {
-    return tokens[i] || null;
-  }
-  function next(): Token | null {
-    return tokens[i++] || null;
-  }
+function parseTokens(tokens: Token[]): ASTNode {
+  let currentIndex = 0;
 
-  function parseProgram(): ASTNode {
+  // Get current token without moving forward
+  const peek = (): Token | null => tokens[currentIndex] || null;
+
+  // Get current token and move to next
+  const consume = (): Token | null => tokens[currentIndex++] || null;
+
+  // Check if token matches a type
+  const isType = (token: Token | null, type: string): boolean =>
+    token?.type === type;
+
+  // Check if token is an operator with specific value
+  const isOperator = (token: Token | null, ...ops: string[]): boolean =>
+    isType(token, TOKEN_TYPES.OP) && ops.includes(token?.value || "");
+
+  // Main entry: check for assignment or expression
+  // We just want to modify currentIndex to point to the first token of expression
+  const parseProgram = (): ASTNode => {
     const first = peek();
-    if (first && first.type === TOKEN_TYPES_LOCAL.IDENT) {
-      const idTok = next()!;
-      const after = peek();
-      if (after && after.type === TOKEN_TYPES_LOCAL.ASSIGN) {
-        next(); // consume '='
-        const expr = parseExpression();
+    if (isType(first, TOKEN_TYPES.IDENT)) {
+      const identToken = consume()!;
+      const next = peek();
+
+      if (isType(next, TOKEN_TYPES.ASSIGN)) {
+        consume(); // consume '='
+        const rightSide = parseExpression();
         return {
           type: "Assignment",
-          name: idTok.value!,
-          id: (idTok as any).id,
-          value: expr,
+          name: identToken.value!,
+          id: identToken.id,
+          value: rightSide,
         };
-      } else {
-        i = 0;
       }
+      // Not an assignment, reset
+      currentIndex = 0;
     }
     return parseExpression();
-  }
+  };
 
-  function parseExpression(): ASTNode {
+  const parseExpression = (): ASTNode => {
     return parseAdditive();
-  }
+  };
 
-  function parseAdditive(): ASTNode {
-    let node = parseMultiplicative();
-    while (true) {
-      const t = peek();
-      if (
-        t &&
-        t.type === TOKEN_TYPES_LOCAL.OP &&
-        (t.value === "+" || t.value === "-")
-      ) {
-        next();
-        const right = parseMultiplicative();
-        node = { type: "BinaryOp", op: t.value!, left: node, right };
-      } else break;
+  // Handle + and - operators
+  const parseAdditive = (): ASTNode => {
+    let left = parseMultiplicative();
+
+    while (isOperator(peek(), "+", "-")) {
+      const operator = consume()!;
+      const right = parseMultiplicative();
+      left = { type: "BinaryOp", op: operator.value!, left, right };
     }
-    return node;
-  }
 
-  function parseMultiplicative(): ASTNode {
-    let node = parsePower();
-    while (true) {
-      const t = peek();
-      if (
-        t &&
-        t.type === TOKEN_TYPES_LOCAL.OP &&
-        (t.value === "*" || t.value === "/")
-      ) {
-        next();
-        const right = parsePower();
-        node = { type: "BinaryOp", op: t.value!, left: node, right };
-      } else break;
-    }
-    return node;
-  }
+    return left;
+  };
 
-  function parsePower(): ASTNode {
-    let node = parseUnary();
-    const t = peek();
-    if (t && t.type === TOKEN_TYPES_LOCAL.OP && t.value === "^") {
-      next();
+  // Handle * and / operators
+  const parseMultiplicative = (): ASTNode => {
+    let left = parsePower();
+
+    while (isOperator(peek(), "*", "/")) {
+      const operator = consume()!;
       const right = parsePower();
-      node = { type: "BinaryOp", op: "^", left: node, right };
+      left = { type: "BinaryOp", op: operator.value!, left, right };
     }
-    return node;
-  }
 
-  function parseUnary(): ASTNode {
-    const t = peek();
-    if (
-      t &&
-      t.type === TOKEN_TYPES_LOCAL.OP &&
-      (t.value === "+" || t.value === "-")
-    ) {
-      next();
-      const expr = parseUnary();
-      return { type: "UnaryOp", op: t.value!, expr };
+    return left;
+  };
+
+  // Handle ^ operator (right-associative)
+  const parsePower = (): ASTNode => {
+    const left = parseUnary();
+
+    if (isOperator(peek(), "^")) {
+      consume();
+      const right = parsePower(); // Right-associative recursion
+      return { type: "BinaryOp", op: "^", left, right };
     }
+
+    return left;
+  };
+
+  // Handle unary + and - operators
+  const parseUnary = (): ASTNode => {
+    if (isOperator(peek(), "+", "-")) {
+      const operator = consume()!;
+      const expression = parseUnary();
+      return { type: "UnaryOp", op: operator.value!, expr: expression };
+    }
+
     return parsePrimary();
-  }
+  };
 
-  function parsePrimary(): ASTNode {
-    const t = peek();
-    if (!t) throw new Error("Unexpected end of input while parsing primary.");
+  // Handle numbers, identifiers, functions, and parentheses
+  const parsePrimary = (): ASTNode => {
+    const token = peek();
 
-    if (t.type === TOKEN_TYPES_LOCAL.NUMBER) {
-      next();
-      return { type: "Number", value: t.value! };
+    if (!token) {
+      throw new Error("Unexpected end of input");
     }
 
-    if (t.type === TOKEN_TYPES_LOCAL.IDENT) {
-      next();
-      return { type: "Identifier", name: t.value!, id: (t as any).id };
+    // Number
+    if (isType(token, TOKEN_TYPES.NUMBER)) {
+      consume();
+      return { type: "Number", value: token.value! };
     }
 
-    if (t.type === TOKEN_TYPES_LOCAL.FUNC) {
-      const fn = next()!;
-      const l = peek();
-      if (!l || l.type !== TOKEN_TYPES_LOCAL.LPAREN)
-        throw new Error("Expected ( after function name");
-      next();
-      const expr = parseExpression();
-      const r = peek();
-      if (!r || r.type !== TOKEN_TYPES_LOCAL.RPAREN)
+    // Identifier
+    if (isType(token, TOKEN_TYPES.IDENT)) {
+      consume();
+      return { type: "Identifier", name: token.value!, id: token.id };
+    }
+
+    // Function: sqrt(expr) becomes expr ^ (1/base)
+    if (isType(token, TOKEN_TYPES.FUNC)) {
+      const funcToken = consume()!;
+
+      if (!isType(peek(), TOKEN_TYPES.LPAREN)) {
+        throw new Error("Expected ( after function");
+      }
+      consume(); // consume '('
+
+      const innerExpression = parseExpression();
+
+      if (!isType(peek(), TOKEN_TYPES.RPAREN)) {
         throw new Error("Expected ) after function argument");
-      next();
-      const base = (fn as any).base || 2;
+      }
+      consume(); // consume ')'
+
+      const base = funcToken.base || 2;
       return {
         type: "BinaryOp",
         op: "^",
-        left: expr,
+        left: innerExpression,
         right: { type: "Number", value: `1/${base}` },
       };
     }
 
-    if (t.type === TOKEN_TYPES_LOCAL.LPAREN) {
-      next();
-      const expr = parseExpression();
-      const r = peek();
-      if (!r || r.type !== TOKEN_TYPES_LOCAL.RPAREN)
-        throw new Error("Expected )");
-      next();
-      return expr;
+    // Parentheses
+    if (isType(token, TOKEN_TYPES.LPAREN)) {
+      consume();
+      const expression = parseExpression();
+
+      if (!isType(peek(), TOKEN_TYPES.RPAREN)) {
+        throw new Error("Expected closing )");
+      }
+      consume();
+
+      return expression;
     }
 
-    throw new Error("Unexpected token in primary: " + JSON.stringify(t));
-  }
+    throw new Error(`Unexpected token: ${JSON.stringify(token)}`);
+  };
 
-  const ast = parseProgram();
-  return ast;
+  return parseProgram();
 }
 
 // Convert AST to react-d3-tree format
-export function astToVizFormat(ast: ASTNode | null): any {
+function astToVizFormat(ast: ASTNode | null): any {
   if (!ast) return null;
 
-  function nodeFor(n: ASTNode | null): any {
-    if (!n) return { name: "null" };
-    switch (n.type) {
+  function convertNode(node: ASTNode | null | undefined): any {
+    if (!node) return { name: "null" };
+
+    switch (node.type) {
       case "Assignment":
         return {
           name: "=",
-          children: [{ name: `${n.name} (${n.id || ""})` }, nodeFor(n.value)],
+          children: [
+            { name: `${node.name} (${node.id || ""})` },
+            convertNode(node.value as ASTNode),
+          ],
         };
+
       case "BinaryOp":
-        return { name: n.op, children: [nodeFor(n.left), nodeFor(n.right)] };
+        return {
+          name: node.op,
+          children: [convertNode(node.left), convertNode(node.right)],
+        };
+
       case "UnaryOp":
-        return { name: n.op, children: [nodeFor(n.expr)] };
+        return {
+          name: node.op,
+          children: [convertNode(node.expr)],
+        };
+
       case "Number":
-        return { name: "Real", children: [{ name: `${n.value}` }] };
+        return {
+          name: "Real",
+          children: [{ name: `${node.value}` }],
+        };
+
       case "Identifier":
-        return { name: `${n.name} (${n.id || ""})` };
+        return { name: `${node.name} (${node.id || ""})` };
+
       default:
-        return { name: JSON.stringify(n) };
+        return { name: JSON.stringify(node) };
     }
   }
 
-  return nodeFor(ast);
+  return convertNode(ast);
 }
+
+export { parseTokens, astToVizFormat };

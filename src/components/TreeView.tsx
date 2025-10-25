@@ -1,12 +1,12 @@
-// We'll use react-d3-tree for convenience. The consumer should install it: `npm install react-d3-tree`
 import Tree from "react-d3-tree";
+import type React from "react";
+import type { RawNodeDatum } from "react-d3-tree";
 
-// TreeView accepts a single treeData object created by parser.astToVizFormat
 interface TreeViewProps {
-  treeData: any; // Replace 'any' with a more specific type if available
+  treeData: RawNodeDatum | null;
 }
 
-export default function TreeView({ treeData }: TreeViewProps) {
+const TreeView: React.FC<TreeViewProps> = ({ treeData }) => {
   if (!treeData) {
     return (
       <div className="p-3 text-gray-500">
@@ -15,19 +15,28 @@ export default function TreeView({ treeData }: TreeViewProps) {
     );
   }
 
-  // react-d3-tree expects an array of root nodes
-  const data = [treeData];
+  const data = [treeData]; // Expects an array of root nodes
 
   return (
-    <div className="h-full w-full">
-      <Tree
-        data={data}
-        orientation="vertical"
-        translate={{ x: 200, y: 20 }}
-        collapsible={false}
-        zoomable={true}
-        initialDepth={Infinity}
-      />
-    </div>
+    <>
+      <h3 className="mb-2 font-semibold">Stage 2 — Parse Tree</h3>
+      <div className="h-[70vh] rounded border border-gray-300 bg-gray-700">
+        <div className="h-full w-full">
+          <Tree
+            data={data}
+            orientation="vertical"
+            translate={{ x: 200, y: 20 }}
+            collapsible={true}
+            zoomable={true}
+            initialDepth={Infinity}
+            rootNodeClassName="node__root"
+            branchNodeClassName="node__branch"
+            leafNodeClassName="node__leaf"
+          />
+        </div>
+      </div>
+    </>
   );
-}
+};
+
+export default TreeView;

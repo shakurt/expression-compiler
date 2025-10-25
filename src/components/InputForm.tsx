@@ -1,37 +1,37 @@
-// src/components/InputForm.jsx
 import { useState } from "react";
+import type React from "react";
 import { lexAndTransform } from "@/utils/lexer";
 import { parseTokens, astToVizFormat } from "@/utils/parser";
 import { generateThreeAddress } from "@/utils/codegen";
 
-// InputForm: validates input, runs lexer and parser, returns results to parent
 interface InputFormProps {
   onResult: (result: {
     tokens: any[];
     transformed: string;
     ast: any;
     tac: string[];
-    idMap: Record<string, string>;
   }) => void;
   onError: (msg: string) => void;
 }
 
-export default function InputForm({ onResult, onError }: InputFormProps) {
+const InputForm: React.FC<InputFormProps> = ({ onResult, onError }) => {
   const [input, setInput] = useState<string>(
     "A = sqrt(B - ( C - D ) ^ E ) - 10"
   );
 
-  function handleAnalyze(): void {
+  const handleAnalyze = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     try {
-      // Validation phase (basic checks)
+      // Validation phase (BASIC CHECKS)
       const validationError = validateInput(input);
       if (validationError) {
         onError(validationError);
         return;
       }
 
-      // Stage 1: Lexical analysis + transform identifiers to idN form
-      const { tokens, transformed, idMap } = lexAndTransform(input);
+      // Stage 1: Lexical analysis + transform identifiers to id form
+      const { tokens, transformed } = lexAndTransform(input);
 
       // Stage 2: Parse — create internal AST from token stream
       // parseTokens returns the internal AST
@@ -44,44 +44,46 @@ export default function InputForm({ onResult, onError }: InputFormProps) {
       const tac = generateThreeAddress(ast); // returns array of strings
 
       // send back results
-      onResult({ tokens, transformed, ast: viz, tac, idMap });
+      onResult({ tokens, transformed, ast: viz, tac });
     } catch (e) {
       if (e instanceof Error) onError(e.message);
       else onError(String(e));
     }
-  }
+  };
 
   return (
-    <div>
-      <label className="mb-1 block font-medium">
-        Enter expression:
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          rows={4}
-          className="mt-1 w-full rounded border border-gray-300 p-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-        />
+    <form className="mx-auto mt-5 max-w-2xl" onSubmit={handleAnalyze}>
+      <label htmlFor="expression" className="mb-1 block font-medium">
+        Enter Expression:
       </label>
 
-      <div className="mt-3">
+      <div className="flex items-center gap-3">
+        <input
+          type="text"
+          value={input}
+          autoComplete="expression"
+          name="expression"
+          id="expression"
+          onChange={(e) => setInput(e.target.value)}
+          className="focus:border-primary focus:ring-primary w-full rounded border border-gray-300 p-2 transition-all ease-in-out outline-none focus:ring-1 focus:outline-none"
+        />
         <button
-          onClick={handleAnalyze}
-          className="rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+          type="submit"
+          className="bg-primary hover:bg-primary/80 cursor-pointer rounded px-4 py-2 text-white transition-colors"
         >
           Analyze
         </button>
       </div>
-
-      <div className="mt-3 text-xs text-gray-600">
+      <p className="mt-1 text-xs text-gray-500">
         Allowed: + - * / ^ parentheses <code>sqrt</code> numbers and English
-        identifiers (letters then digits). Example:
+        identifiers (letters then digits).
+        <br /> Example:
         <code className="ml-1">A = sqrt(B - (C - D) ^ E) - 10</code>
-      </div>
-    </div>
+      </p>
+    </form>
   );
-}
+};
 
-// Basic input validation (same as before)
 function validateInput(text: string): string | null {
   if (!text || !text.trim()) return "Input is empty.";
 
@@ -95,7 +97,7 @@ function validateInput(text: string): string | null {
   }
   if (balance !== 0) return "Parentheses mismatch: not balanced.";
 
-  // last token not operator
+  // last or first token not operator
   const lastNonSpace = text.trim().slice(-1);
   if ("+-*/^=(".includes(lastNonSpace))
     return "Expression ends with an operator or invalid character.";
@@ -116,3 +118,5 @@ function validateInput(text: string): string | null {
 
   return null;
 }
+
+export default InputForm;

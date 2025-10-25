@@ -1,8 +1,38 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
+@theme {
+  --color-bg: #283149;
+  --color-card: #404b69;
+  --color-primary: #00818a;
+  --color-secondary: #dbedf3;
 }
-textarea {
-  font-family: inherit;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  @apply bg-bg text-white;
+}
+
+.container {
+  @apply mx-auto px-4 sm:px-0;
+}
+
+a.active {
+  @apply decoration-primary underline underline-offset-8;
+}
+
+.node__root > circle {
+  fill: gray;
+}
+
+.node__branch > circle {
+  fill: gray;
+}
+
+.node__leaf > circle {
+  fill: white;
 }
