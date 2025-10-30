@@ -70,13 +70,13 @@ const HomePage = () => {
               <h3 className="mt-3 mb-1 font-semibold lg:mt-0">
                 Transformed expression (identifier ids)
               </h3>
-              <pre className="rounded bg-gray-700 p-3 text-white">
+              <pre className="overflow-x-auto rounded bg-gray-700 p-3 wrap-break-word whitespace-pre-wrap text-white">
                 {transformedExpr}
               </pre>
               <h3 className="mt-3 mb-1 font-semibold">
                 Stage 3 — Three-address code (intermediate code)
               </h3>
-              <pre className="rounded bg-gray-700 p-3 text-white">
+              <pre className="overflow-x-auto rounded bg-gray-700 p-3 wrap-break-word whitespace-pre-wrap text-white">
                 {tac && tac.length > 0 ? tac.join("\n") : "No TAC"}
               </pre>
             </div>
