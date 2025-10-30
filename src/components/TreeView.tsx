@@ -1,5 +1,7 @@
-import Tree from "react-d3-tree";
 import type React from "react";
+
+import Tree from "react-d3-tree";
+
 import type { RawNodeDatum } from "react-d3-tree";
 
 interface TreeViewProps {

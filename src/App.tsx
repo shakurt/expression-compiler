@@ -1,8 +1,9 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { Route, Routes } from "react-router";
-import HomePage from "@/pages/home";
+
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 import AboutPage from "@/pages/about";
+import HomePage from "@/pages/home";
 import NotFoundPage from "@/pages/not-found";
 
 const App = () => {

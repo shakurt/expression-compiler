@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type React from "react";
+
+import { generateThreeAddress } from "@/utils/code-generator";
 import { lexAndTransform } from "@/utils/lexer";
 import { parseTokens, astToVizFormat } from "@/utils/parser";
-import { generateThreeAddress } from "@/utils/code-generator";
 
 interface InputFormProps {
   onResult: (result: {
