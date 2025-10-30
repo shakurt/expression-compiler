@@ -1,15 +1,16 @@
 import { useState } from "react";
 import type React from "react";
 
+import type { Token, TreeNode } from "@/types";
 import { generateThreeAddress } from "@/utils/code-generator";
 import { lexAndTransform } from "@/utils/lexer";
 import { parseTokens, astToVizFormat } from "@/utils/parser";
 
 interface InputFormProps {
   onResult: (result: {
-    tokens: any[];
+    tokens: Token[];
     transformed: string;
-    ast: any;
+    ast: TreeNode | null;
     tac: string[];
   }) => void;
   onError: (msg: string) => void;

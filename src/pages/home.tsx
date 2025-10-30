@@ -2,11 +2,12 @@ import { useState } from "react";
 
 import InputForm from "@/components/InputForm";
 import TreeView from "@/components/TreeView";
+import type { Token, TreeNode } from "@/types";
 
 const HomePage = () => {
-  const [tokensOutput, setTokensOutput] = useState<any[] | null>(null);
+  const [tokensOutput, setTokensOutput] = useState<Token[] | null>(null);
   const [transformedExpr, setTransformedExpr] = useState<string>("");
-  const [astTree, setAstTree] = useState<any | null>(null);
+  const [astTree, setAstTree] = useState<TreeNode | null>(null);
   const [tac, setTac] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isTokensCollapsed, setIsTokensCollapsed] = useState<boolean>(false);

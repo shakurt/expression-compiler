@@ -1,5 +1,5 @@
 // TODO: Shunting Yard algorithm
-import type { Token, ASTNode } from "@/types";
+import type { Token, ASTNode, TreeNode } from "@/types";
 import { TOKEN_TYPES } from "@/types";
 
 // Parse tokens into AST
@@ -163,10 +163,10 @@ function parseTokens(tokens: Token[]): ASTNode {
 }
 
 // Convert AST to react-d3-tree format
-function astToVizFormat(ast: ASTNode | null): any {
+function astToVizFormat(ast: ASTNode | null): TreeNode | null {
   if (!ast) return null;
 
-  function convertNode(node: ASTNode | null | undefined): any {
+  function convertNode(node: ASTNode | null | undefined): TreeNode {
     if (!node) return { name: "null" };
 
     switch (node.type) {
@@ -181,13 +181,13 @@ function astToVizFormat(ast: ASTNode | null): any {
 
       case "BinaryOp":
         return {
-          name: node.op,
+          name: node.op || "?",
           children: [convertNode(node.left), convertNode(node.right)],
         };
 
       case "UnaryOp":
         return {
-          name: node.op,
+          name: node.op || "?",
           children: [convertNode(node.expr)],
         };
 

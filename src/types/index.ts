@@ -27,3 +27,9 @@ export interface ASTNode {
   right?: ASTNode;
   expr?: ASTNode;
 }
+
+// Tree visualization node format (for react-d3-tree)
+export interface TreeNode {
+  name: string;
+  children?: TreeNode[];
+}
